@@ -6,6 +6,7 @@ require (
 	github.com/charmbracelet/huh v0.8.0
 	github.com/go-git/go-git/v5 v5.16.4
 	github.com/google/go-github/v60 v60.0.0
+	github.com/joho/godotenv v1.5.1
 	github.com/sashabaranov/go-openai v1.41.2
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/oauth2 v0.34.0

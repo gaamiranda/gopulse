@@ -41,6 +41,16 @@ export OPENAI_API_KEY="your-openai-api-key"
 export GITHUB_TOKEN="your-github-token"
 ```
 
+### Using a .env File
+
+Vibe automatically loads a `.env` file from the current directory if present:
+
+```bash
+# Create .env file in your project root
+echo 'OPENAI_API_KEY=your-openai-api-key' > .env
+echo 'GITHUB_TOKEN=your-github-token' >> .env
+```
+
 ### Getting API Keys
 
 - **OpenAI API Key**: Get yours at [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
@@ -79,7 +89,7 @@ This project is under active development.
 
 - [x] Phase 1: Project Setup
 - [x] Phase 2: Core Infrastructure
-- [ ] Phase 3: Commands
+- [x] Phase 3: Commands
 - [ ] Phase 4: Polish
 
 ## Tech Stack

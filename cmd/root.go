@@ -4,8 +4,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
+
+func init() {
+	// Load .env file if it exists (silently ignore if not found)
+	_ = godotenv.Load()
+}
 
 var rootCmd = &cobra.Command{
 	Use:   "vibe",
@@ -33,6 +39,9 @@ func init() {
 	// Disable the default completion command
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 }
+
+// loadEnv is called by init() at package load time
+// It's defined separately to allow the godotenv.Load() to run first
 
 // checkOpenAIKey validates that OPENAI_API_KEY is set
 func checkOpenAIKey() error {
