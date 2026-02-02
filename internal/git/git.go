@@ -210,28 +210,8 @@ func (r *Repository) Commit(message string) (string, error) {
 		return "", fmt.Errorf("failed to get worktree: %w", err)
 	}
 
-	// Get git config for author info
-	cfg, err := r.repo.Config()
-	if err != nil {
-		return "", fmt.Errorf("failed to get config: %w", err)
-	}
-
-	authorName := cfg.User.Name
-	authorEmail := cfg.User.Email
-
-	// If no user configured in repo, try environment variables or use defaults
-	if authorName == "" {
-		authorName = os.Getenv("GIT_AUTHOR_NAME")
-		if authorName == "" {
-			authorName = "Vibe User"
-		}
-	}
-	if authorEmail == "" {
-		authorEmail = os.Getenv("GIT_AUTHOR_EMAIL")
-		if authorEmail == "" {
-			authorEmail = "vibe@local"
-		}
-	}
+	// Get author info from various sources
+	authorName, authorEmail := getAuthorInfo(r)
 
 	hash, err := worktree.Commit(message, &git.CommitOptions{
 		Author: &object.Signature{
@@ -245,6 +225,98 @@ func (r *Repository) Commit(message string) (string, error) {
 	}
 
 	return hash.String()[:7], nil
+}
+
+// getAuthorInfo retrieves author name and email from multiple sources:
+// 1. Local repo config
+// 2. Global git config (~/.gitconfig)
+// 3. Environment variables (GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL)
+// 4. Fallback defaults
+func getAuthorInfo(r *Repository) (name, email string) {
+	// Try local repo config first
+	cfg, err := r.repo.Config()
+	if err == nil {
+		name = cfg.User.Name
+		email = cfg.User.Email
+	}
+
+	// If not found, try reading global git config
+	if name == "" || email == "" {
+		globalName, globalEmail := readGlobalGitConfig()
+		if name == "" {
+			name = globalName
+		}
+		if email == "" {
+			email = globalEmail
+		}
+	}
+
+	// Try environment variables
+	if name == "" {
+		name = os.Getenv("GIT_AUTHOR_NAME")
+	}
+	if email == "" {
+		email = os.Getenv("GIT_AUTHOR_EMAIL")
+	}
+
+	// Final fallback
+	if name == "" {
+		name = "Vibe User"
+	}
+	if email == "" {
+		email = "vibe@local"
+	}
+
+	return name, email
+}
+
+// readGlobalGitConfig reads user.name and user.email from ~/.gitconfig
+func readGlobalGitConfig() (name, email string) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", ""
+	}
+
+	gitconfigPath := home + "/.gitconfig"
+	data, err := os.ReadFile(gitconfigPath)
+	if err != nil {
+		return "", ""
+	}
+
+	// Simple parsing of gitconfig format
+	lines := strings.Split(string(data), "\n")
+	inUserSection := false
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+
+		if line == "[user]" {
+			inUserSection = true
+			continue
+		}
+
+		if strings.HasPrefix(line, "[") {
+			inUserSection = false
+			continue
+		}
+
+		if inUserSection {
+			if strings.HasPrefix(line, "name") {
+				parts := strings.SplitN(line, "=", 2)
+				if len(parts) == 2 {
+					name = strings.TrimSpace(parts[1])
+				}
+			}
+			if strings.HasPrefix(line, "email") {
+				parts := strings.SplitN(line, "=", 2)
+				if len(parts) == 2 {
+					email = strings.TrimSpace(parts[1])
+				}
+			}
+		}
+	}
+
+	return name, email
 }
 
 // GetCurrentBranch returns the name of the current branch
