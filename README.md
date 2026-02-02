@@ -78,7 +78,7 @@ vibe pr
 This project is under active development.
 
 - [x] Phase 1: Project Setup
-- [ ] Phase 2: Core Infrastructure
+- [x] Phase 2: Core Infrastructure
 - [ ] Phase 3: Commands
 - [ ] Phase 4: Polish
 
@@ -93,4 +93,4 @@ This project is under active development.
 
 ## License
 
-MIT
+[MIT](LICENSE)
