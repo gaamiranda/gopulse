@@ -2,9 +2,12 @@ package llm
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strings"
+	"time"
 
 	openai "github.com/sashabaranov/go-openai"
 )
@@ -51,8 +54,11 @@ func (c *Client) GenerateCommitMessage(diff string) (string, error) {
 
 	prompt := buildCommitPrompt(diff)
 
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	defer cancel()
+
 	resp, err := c.client.CreateChatCompletion(
-		context.Background(),
+		ctx,
 		openai.ChatCompletionRequest{
 			Model: c.model,
 			Messages: []openai.ChatCompletionMessage{
@@ -71,7 +77,7 @@ func (c *Client) GenerateCommitMessage(diff string) (string, error) {
 	)
 
 	if err != nil {
-		return "", fmt.Errorf("failed to generate commit message: %w", err)
+		return "", formatAPIError(err)
 	}
 
 	if len(resp.Choices) == 0 {
@@ -95,8 +101,11 @@ func (c *Client) GeneratePRContent(commits string, diff string) (*PRContent, err
 
 	prompt := buildPRPrompt(commits, diff)
 
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	defer cancel()
+
 	resp, err := c.client.CreateChatCompletion(
-		context.Background(),
+		ctx,
 		openai.ChatCompletionRequest{
 			Model: c.model,
 			Messages: []openai.ChatCompletionMessage{
@@ -115,7 +124,7 @@ func (c *Client) GeneratePRContent(commits string, diff string) (*PRContent, err
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate PR content: %w", err)
+		return nil, formatAPIError(err)
 	}
 
 	if len(resp.Choices) == 0 {
@@ -265,3 +274,59 @@ Key changes:
 - Update API documentation
 
 Note: Requires REDIS_URL environment variable for session storage.`
+
+// formatAPIError converts OpenAI API errors into user-friendly messages
+func formatAPIError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	errStr := err.Error()
+
+	// Check for network errors
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		if netErr.Timeout() {
+			return fmt.Errorf("request timed out - please check your internet connection and try again")
+		}
+		return fmt.Errorf("network error - please check your internet connection: %w", err)
+	}
+
+	// Check for common API errors by message content
+	switch {
+	case strings.Contains(errStr, "401") || strings.Contains(errStr, "invalid_api_key"):
+		return fmt.Errorf(`invalid OpenAI API key
+
+Please check your OPENAI_API_KEY:
+  1. Verify the key is correct at https://platform.openai.com/api-keys
+  2. Make sure the key hasn't been revoked
+  3. Check that your .env file has the correct format: OPENAI_API_KEY=sk-...`)
+
+	case strings.Contains(errStr, "429"):
+		return fmt.Errorf(`OpenAI API rate limit exceeded
+
+You've made too many requests. Please:
+  1. Wait a few minutes and try again
+  2. Check your usage at https://platform.openai.com/usage
+  3. Consider upgrading your OpenAI plan if this persists`)
+
+	case strings.Contains(errStr, "500") || strings.Contains(errStr, "502") || strings.Contains(errStr, "503"):
+		return fmt.Errorf("OpenAI service is temporarily unavailable - please try again in a few minutes")
+
+	case strings.Contains(errStr, "insufficient_quota"):
+		return fmt.Errorf(`OpenAI API quota exceeded
+
+Your API key has run out of credits. Please:
+  1. Check your billing at https://platform.openai.com/account/billing
+  2. Add credits or upgrade your plan`)
+
+	case strings.Contains(errStr, "context_length_exceeded"):
+		return fmt.Errorf("the diff is too large for the AI model - try staging fewer files")
+
+	default:
+		return fmt.Errorf("OpenAI API error: %w", err)
+	}
+}
+
+// requestTimeout is the timeout for API requests
+const requestTimeout = 30 * time.Second

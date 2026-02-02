@@ -12,6 +12,7 @@ Vibe streamlines your git workflow by analyzing your changes and suggesting appr
 - **AI PR Descriptions**: Create GitHub PRs with AI-generated titles and descriptions
 - **Interactive Review**: Always review and edit before committing or creating PRs
 - **Pure Go**: No external git binary required (uses go-git)
+- **Auto .env Loading**: Automatically loads environment variables from `.env` file
 
 ## Installation
 
@@ -51,6 +52,8 @@ echo 'OPENAI_API_KEY=your-openai-api-key' > .env
 echo 'GITHUB_TOKEN=your-github-token' >> .env
 ```
 
+> **Note**: Never commit your `.env` file to git. It's already in the default `.gitignore`.
+
 ### Getting API Keys
 
 - **OpenAI API Key**: Get yours at [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
@@ -68,11 +71,60 @@ git add .
 vibe commit
 ```
 
+**Example workflow:**
+```
+$ git add src/feature.go
+$ vibe commit
+
+Analyzing staged changes...
+
+Generated commit message:
+--------------------------------------------------
+Add user authentication middleware with JWT validation
+--------------------------------------------------
+
+? What would you like to do? [Accept / Edit / Cancel]
+> Accept
+
+Committed: a1b2c3d
+
+  Add user authentication middleware with JWT validation
+```
+
 ### Create PR with AI Description
 
 ```bash
 # On a feature branch with commits
 vibe pr
+```
+
+**Example workflow:**
+```
+$ vibe pr
+
+Analyzing branch 'feature/auth' against 'main'...
+Found 3 commit(s) ahead of main
+
+Generated PR:
+--------------------------------------------------
+Title: Add user authentication system
+
+Description:
+This PR introduces JWT-based authentication for the API.
+
+Key changes:
+- Add auth middleware for protected routes
+- Implement login and logout endpoints
+- Add user session management
+--------------------------------------------------
+
+? What would you like to do? [Accept / Edit / Cancel]
+> Accept
+
+Pushing branch to origin...
+Creating pull request...
+
+PR created: https://github.com/user/repo/pull/42
 ```
 
 ## Commands
@@ -81,16 +133,18 @@ vibe pr
 |---------|-------------|
 | `vibe commit` | Generate AI commit message for staged changes |
 | `vibe pr` | Create GitHub PR with AI-generated title and description |
+| `vibe version` | Show version information |
 | `vibe --help` | Show help information |
 
-## Development Status
+## Error Handling
 
-This project is under active development.
+Vibe provides helpful error messages for common issues:
 
-- [x] Phase 1: Project Setup
-- [x] Phase 2: Core Infrastructure
-- [x] Phase 3: Commands
-- [ ] Phase 4: Polish
+- **No staged changes**: Reminds you to use `git add` first
+- **Not a git repository**: Tells you to navigate to a git repo
+- **Invalid API key**: Shows how to fix your credentials
+- **Rate limits**: Explains what to do when limits are hit
+- **Network errors**: Suggests checking your connection
 
 ## Tech Stack
 
@@ -100,6 +154,11 @@ This project is under active development.
 - **GitHub API**: [go-github](https://github.com/google/go-github)
 - **LLM**: [OpenAI API](https://github.com/sashabaranov/go-openai)
 - **Interactive UI**: [huh](https://github.com/charmbracelet/huh)
+- **Env Loading**: [godotenv](https://github.com/joho/godotenv)
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
