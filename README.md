@@ -23,10 +23,20 @@ Vibe streamlines your git workflow by analyzing your changes and suggesting appr
 git clone https://github.com/user/vibe.git
 cd vibe
 
-# Build
+# Build and install (using Makefile)
+make install
+
+# Or build and create symlink (recommended for development)
+make link
+```
+
+### Manual Build
+
+```bash
+# Build the binary
 go build -o vibe .
 
-# Move to PATH (optional)
+# Move to PATH
 sudo mv vibe /usr/local/bin/
 ```
 
